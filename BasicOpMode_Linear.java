@@ -29,11 +29,13 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.lynx.commands.core.LynxSetMotorTargetPositionCommand;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
@@ -61,8 +63,14 @@ public class BasicOpMode_Linear extends LinearOpMode {
     private DcMotor motor1;
     private DcMotor motor3;
     private DcMotor motor2;
+    private DcMotor motorshelf ;
+    private Servo servo1;
+    private Servo servo2;
     private double curr_power = 0.7;
-
+    private double shelf_counter = 0;
+    private double arm_counter = 0;
+    private double shelf_increment = 0.009;
+    private double arm_increment = 0.09;
 
     public void setupRobot() {
 
@@ -80,25 +88,26 @@ public class BasicOpMode_Linear extends LinearOpMode {
         //motor3 is upper right
         //motor1 is lower left
         //motor0 is lower right
-        motor0 = hardwareMap.get(DcMotor.class, "upperright");
-        motor1 = hardwareMap.get(DcMotor.class, "upperleft");
-        motor3 = hardwareMap.get(DcMotor.class, "lowerright");
-        motor2 = hardwareMap.get(DcMotor.class, "lowerleft");
+        motor0 = hardwareMap.get(DcMotor.class, "ur");//upper right
+        motor1 = hardwareMap.get(DcMotor.class, "ul"); //upper left
+        motor3 = hardwareMap.get(DcMotor.class, "lr"); //lower right
+        motor2 = hardwareMap.get(DcMotor.class, "ll"); //lower left
+        motorshelf = hardwareMap.get(DcMotor.class,"sm");//
+        servo1 = hardwareMap.get(Servo.class, "ssh");//servo shelf
+        servo2 = hardwareMap.get(Servo.class, "sa");//servo arm
 
         motor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         motor3.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-
         motor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-
         motor0.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-
+        motorshelf.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         /*
          Most robots need the motor on one side to be reversed to drive forward
          Reverse the motor that runs backwards when connected directly to the battery
         */
 
 
-        waitForStart();
+
         runtime.reset();
 
 //        telemetry.addData("Status", "Success!!");
@@ -131,7 +140,8 @@ public class BasicOpMode_Linear extends LinearOpMode {
 
         setupRobot();
         waitForStart();
-
+        servo1.setPosition(0);
+        servo2.setPosition(0);
         // Wait for the game to start (driver presses PLAY)
 
 
@@ -204,7 +214,7 @@ public class BasicOpMode_Linear extends LinearOpMode {
                 motor1.setDirection(DcMotorSimple.Direction.REVERSE);
                 motor3.setDirection(DcMotorSimple.Direction.FORWARD);
                 setPower_diagonal_left(curr_power);
-            }else if (gamepad1.x) {
+            } else if (gamepad1.x) {
                 //left turn
                 motor0.setDirection(DcMotorSimple.Direction.REVERSE);
                 motor1.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -212,7 +222,7 @@ public class BasicOpMode_Linear extends LinearOpMode {
                 motor3.setDirection(DcMotorSimple.Direction.REVERSE);
                 setPower_diagonal_left(curr_power);
                 setPower_diagonal_right(curr_power);
-            }else if (gamepad1.b){
+            } else if (gamepad1.b) {
                 //right turn
                 motor0.setDirection(DcMotorSimple.Direction.FORWARD);
                 motor1.setDirection(DcMotorSimple.Direction.FORWARD);
@@ -221,15 +231,18 @@ public class BasicOpMode_Linear extends LinearOpMode {
                 setPower_diagonal_right(curr_power);
                 setPower_diagonal_left(curr_power);
 
-            }else if (gamepad1.right_bumper){
-                //normal mode
-             curr_power=0.7;
+            } else {
+                if (gamepad1.right_bumper) {
+                    //normal mode
+                    curr_power = 0.7;
 
-            }else if(gamepad1.left_bumper){
-                //slow mode
-                curr_power=0.2;
+                } else if (gamepad1.left_bumper) {
+                    //slow mode
+                    curr_power = 0.2;
 
-            }
+                }
+
+
 
 
 
@@ -243,24 +256,62 @@ public class BasicOpMode_Linear extends LinearOpMode {
             }
 
            */
-            else {
+                else {
 
-                if (gamepad1.left_stick_x == 0 && gamepad1.left_stick_y == 0 ) {
-                    setPower(0);
+                    if (gamepad1.left_stick_x == 0 && gamepad1.left_stick_y == 0) {
+                        setPower(0);
 
-                    motor0.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                    motor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                    motor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                    motor3.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                        motor0.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                        motor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                        motor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                        motor3.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-                    sleep(10);
+                        sleep(10);
 
+
+                    }
 
                 }
+            }
+            if (gamepad2.dpad_right) {
+                sleep(100);
+                shelf_counter  = shelf_counter + shelf_increment;
+                servo1.setPosition(shelf_counter);
+                telemetry.addData("in right servo1 counter=",servo1.getPosition());
+                telemetry.update();
+
+            } else if (gamepad2.dpad_left) {
+                sleep(100);
+                shelf_counter = shelf_counter - shelf_increment;
+                servo1.setPosition(shelf_counter);
+                telemetry.addData("in left servo1 counter=",servo1.getPosition());
+                telemetry.update();
+
+            } else {
+                sleep(100);
+                telemetry.addData("else servo1 counter=",servo1.getPosition());
+                telemetry.update();
 
             }
-
-
+            if (gamepad2.y) {
+                sleep(100);
+                arm_counter  = arm_counter + arm_increment;
+                servo2.setPosition(arm_counter);
+            } else if (gamepad2.x) {
+                sleep(100);
+                arm_counter  = arm_counter - arm_increment;
+                servo2.setPosition(arm_counter);
+            }
+            if (gamepad2.right_bumper) {
+                motorshelf.setDirection(DcMotorSimple.Direction.FORWARD);
+                motorshelf.setPower(curr_power);
+            }
+             else if (gamepad2.left_bumper){
+                 motorshelf.setDirection(DcMotorSimple.Direction.REVERSE);
+                 motorshelf.setPower(curr_power);
+            }
+//            telemetry.addData("servo2 counter=",servo2.getPosition());
+//            telemetry.update();
             // Show the elapsed game time and wheel power.
 //            telemetry.addData("Status", "Run Time: " + runtime.toString());
 //            telemetry.addData("Motors", "left (%.2f), right (%.2f)", leftPower, rightPower);
