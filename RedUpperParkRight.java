@@ -206,7 +206,11 @@ public class RedUpperParkRight extends LinearOpMode {
         R2.setPower(power);
 
         if (dir==1) {
-            R0.setPower(power-0.3);
+            if (power>0.3) {
+                R0.setPower(power-0.3);
+            } else {
+                R0.setPower(power);
+            }
         }
         else {
             R0.setPower(power);
@@ -221,22 +225,26 @@ public class RedUpperParkRight extends LinearOpMode {
         //run to position
         while ((L3.getCurrentPosition() < target_position)) {
 
-            if (dir==1) {
-                fix_drive_angle();
+            //acceleration
+            power = power + acceleration;
+            if (power >= 1) {
+                //dont over 1!
+                // if the power is 1 --> keep it 1
+                power = 1;
             }
-            else {
-                //acceleration
-                power = power + acceleration;
-                if (power >= 1) {
-                    //dont over 1!
-                    // if the power is 1 --> keep it 1
-                    power = 1;
-                }
 
                 //keep update the power
-                R2.setPower(power);
-                L3.setPower(power);
-                L1.setPower(power);
+            R2.setPower(power);
+            L3.setPower(power);
+            L1.setPower(power);
+            if (dir==1) {
+                if (power>0.3) {
+                    R0.setPower(power-0.3);
+                } else {
+                    R0.setPower(power);
+                }
+            }
+            else {
                 R0.setPower(power);
             }
             telemetry.addData("R2 ticks = ", R2.getCurrentPosition());
@@ -318,12 +326,12 @@ public class RedUpperParkRight extends LinearOpMode {
         //false = up
 
         drive(2,50,0.9);
-        drive(3,72,0.9);
+        drive(3,69,0.9);
         drive(3,5,0.15);
         foundationCatchRelease(true);
         drive(4,72,0.15);
         foundationCatchRelease(false);
-        drive(1,90,0.9);
+        drive(1,85,0.9);
         drive(3,50,0.9);
         drive(2,30,0.9);
 
