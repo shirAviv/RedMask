@@ -16,7 +16,7 @@ public class Robot_Driver extends LinearOpMode {
     DcMotor R0, R2, L1, L3, CE1, CE2, SCM;
     Servo FNM, SHELFMOTOR, CATCHMOTOR, CM;
     float dir = 1;
-    float curr_power = (float) 0.95;
+    float curr_power = (float) 0.65;
     private double shelf_counter = 0;
     private double shelf_increment = 0.0055;
 
@@ -36,7 +36,13 @@ public class Robot_Driver extends LinearOpMode {
     }
 
     public void setMotionEnginesMotorPower(float power) {
-        R0.setPower(power);
+        if (power>0.3) {
+            //R2.setPower(power-0.3);
+            R0.setPower(power-0.3);
+        } else {
+            //R2.setPower(power);
+            R0.setPower(power);
+        }
         R2.setPower(power);
         L1.setPower(power);
         L3.setPower(power);
@@ -61,7 +67,7 @@ public class Robot_Driver extends LinearOpMode {
             //          counter = counter - increment;
         } else {
             FNM.setDirection(Servo.Direction.FORWARD);
-            FNM.setPosition(0.05);
+            FNM.setPosition(0.02);
 //            counter = counter + increment;
         }
         telemetry.addData("FNM position after", FNM.getPosition());
@@ -77,17 +83,30 @@ public class Robot_Driver extends LinearOpMode {
 
         telemetry.addData("CRM position", CATCHMOTOR.getPosition());
         if (pushin) {
-            CATCHMOTOR.setDirection(Servo.Direction.REVERSE);
-            CATCHMOTOR.setPosition(0.4);
+            CATCHMOTOR.setPosition(0.1);
         } else {
-            CATCHMOTOR.setDirection(Servo.Direction.FORWARD);
-            CATCHMOTOR.setPosition(0.4);
+
+            CATCHMOTOR.setPosition(0.8);
         }
         telemetry.addData("CRM position after", CATCHMOTOR.getPosition());
         telemetry.update();
 
 
-        FNM.setDirection(Servo.Direction.FORWARD);
+
+    }
+    public void drag(boolean lower) {
+
+        telemetry.addData("CRM position", CATCHMOTOR.getPosition());
+        if (lower) {
+            CM.setDirection(Servo.Direction.REVERSE);
+            CM.setPosition(0.55);
+        } else {
+            CM.setDirection(Servo.Direction.FORWARD);
+            CM.setPosition(0.55);
+        }
+
+
+        CM.setDirection(Servo.Direction.FORWARD);
     }
 
 
@@ -137,6 +156,7 @@ public class Robot_Driver extends LinearOpMode {
         CE2.setDirection(DcMotor.Direction.FORWARD);
         SCM.setDirection(DcMotor.Direction.FORWARD);
 
+
         telemetry.addData("Stauts", "success!");
         telemetry.update();
         printData();
@@ -152,7 +172,7 @@ public class Robot_Driver extends LinearOpMode {
 
 
         while (opModeIsActive()) {
-            CATCHMOTOR.setPosition(0);
+
             //right
             if (gamepad1.left_stick_x > 0.3 || gamepad1.dpad_right) {
                 telemetry.addData("Stauts", "right!");
@@ -173,15 +193,6 @@ public class Robot_Driver extends LinearOpMode {
                 setMotionEnginesMotorPower(curr_power);
                 //forward
             } else if (gamepad1.left_stick_y > 0.3 || gamepad1.dpad_down) {
-                telemetry.addData("Stauts", "forward!");
-                telemetry.update();
-                R0.setDirection(DcMotor.Direction.REVERSE);
-                R2.setDirection(DcMotor.Direction.FORWARD);
-                L1.setDirection(DcMotor.Direction.REVERSE);
-                L3.setDirection(DcMotor.Direction.FORWARD);
-                setMotionEnginesMotorPower(curr_power);
-                //backward
-            } else if (gamepad1.left_stick_y < -0.3 || gamepad1.dpad_up) {
                 telemetry.addData("Stauts", "backward!");
                 telemetry.update();
                 R0.setDirection(DcMotor.Direction.FORWARD);
@@ -189,17 +200,26 @@ public class Robot_Driver extends LinearOpMode {
                 L1.setDirection(DcMotor.Direction.FORWARD);
                 L3.setDirection(DcMotor.Direction.REVERSE);
                 setMotionEnginesMotorPower(curr_power);
+                //backward
+            } else if (gamepad1.left_stick_y < -0.3 || gamepad1.dpad_up) {
+                telemetry.addData("Stauts", "forward!");
+                telemetry.update();
+                R0.setDirection(DcMotor.Direction.REVERSE);
+                R2.setDirection(DcMotor.Direction.FORWARD);
+                L1.setDirection(DcMotor.Direction.REVERSE);
+                L3.setDirection(DcMotor.Direction.FORWARD);
+                setMotionEnginesMotorPower(curr_power);
             }
 
             //left rotate
-            else if (gamepad1.x) {
+            else if (gamepad1.b) {
                 R0.setDirection(DcMotor.Direction.FORWARD);
                 R2.setDirection(DcMotor.Direction.FORWARD);
                 L1.setDirection(DcMotor.Direction.FORWARD);
                 L3.setDirection(DcMotor.Direction.FORWARD);
                 setMotionEnginesMotorPower(curr_power);
             }//right rotate
-            else if (gamepad1.b) {
+            else if (gamepad1.x) {
                 R0.setDirection(DcMotor.Direction.REVERSE);
                 R2.setDirection(DcMotor.Direction.REVERSE);
                 L1.setDirection(DcMotor.Direction.REVERSE);
@@ -207,11 +227,11 @@ public class Robot_Driver extends LinearOpMode {
                 setMotionEnginesMotorPower(curr_power);
             } else if (gamepad1.right_bumper) {
                 //normal mode
-                curr_power = (float) 0.95;
+                curr_power = (float) 0.65;
 
             } else if (gamepad1.left_bumper) {
                 //slow mode
-                curr_power = (float) 0.20;
+                curr_power = (float) 0.40;
             }
             //pause
             else if (gamepad1.left_stick_x == 0 && gamepad1.left_stick_y == 0) {
@@ -235,7 +255,15 @@ public class Robot_Driver extends LinearOpMode {
                 telemetry.update();
                 foundationCatchRelease(false);
             }
+            if(gamepad2.dpad_down){
+            drag(true);
 
+
+
+            }
+            if (gamepad2.dpad_up){
+                drag(false);
+            }
             if (gamepad2.right_bumper) {
                 telemetry.addData("Stauts", "cube_catch!");
                 telemetry.update();
@@ -306,6 +334,9 @@ public class Robot_Driver extends LinearOpMode {
                 //}
                 telemetry.addData("in left servo1 counter=", SHELFMOTOR.getPosition());
                 telemetry.update();
+            }
+            if (!gamepad2.y && !gamepad2.a) {
+                SHELFMOTOR.setPosition(SHELFMOTOR.getPosition());
             }
 
 

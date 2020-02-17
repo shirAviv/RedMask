@@ -4,12 +4,15 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
 
 @Autonomous(name = "blueBottomParkRight", group = "Linear Opmode")
 public class blueBottomParkRight extends LinearOpMode {
 
     DcMotor R0, R2, L1, L3, CE1, CE2, SCM;
+    Servo CM;
     private ElapsedTime timer = new ElapsedTime();
     float power = (float) 0.7;
 
@@ -22,6 +25,8 @@ public class blueBottomParkRight extends LinearOpMode {
         CE1 = hardwareMap.get(DcMotor.class, "CE1");//cube eater 1 (right)
         CE2 = hardwareMap.get(DcMotor.class, "CE2");//cube eater 2 (left)
         SCM = hardwareMap.get(DcMotor.class, "SCM"); //seazer motor (misparaim)
+        CM = hardwareMap.get(Servo.class, "CM");
+
 
         R0.setDirection(DcMotor.Direction.FORWARD);
         R2.setDirection(DcMotor.Direction.FORWARD);
@@ -30,6 +35,7 @@ public class blueBottomParkRight extends LinearOpMode {
         CE1.setDirection(DcMotor.Direction.FORWARD);
         CE2.setDirection(DcMotor.Direction.FORWARD);
         SCM.setDirection(DcMotor.Direction.FORWARD);
+        CM.setDirection(Servo.Direction.FORWARD);
 
 
         telemetry.addData("Stauts", "success!");
@@ -130,14 +136,14 @@ public class blueBottomParkRight extends LinearOpMode {
         //5--> ROTATE LEFT
         //6--> ROTATE RIGHT
         switch (dir) {
-            case 1: {
+            case 2: {
                 L3.setDirection(DcMotor.Direction.REVERSE);
                 L1.setDirection(DcMotor.Direction.FORWARD);
                 R2.setDirection(DcMotor.Direction.REVERSE);
                 R0.setDirection(DcMotor.Direction.FORWARD);
                 break;
             }
-            case 2: {
+            case 1: {
                 L3.setDirection(DcMotor.Direction.FORWARD);
                 L1.setDirection(DcMotor.Direction.REVERSE);
                 R2.setDirection(DcMotor.Direction.FORWARD);
@@ -197,8 +203,16 @@ public class blueBottomParkRight extends LinearOpMode {
         L3.setPower(power);
         L1.setPower(power);
         R2.setPower(power);
-        R0.setPower(power);
-
+        if (dir==1) {
+            if (power>0.3) {
+                R0.setPower(power-0.3);
+            } else {
+                R0.setPower(power);
+            }
+        }
+        else {
+            R0.setPower(power);
+        }
         //calc the error - by ticks
         target_position = (L3.getCurrentPosition() + target) - error;
         // be safe with abs value
@@ -223,7 +237,16 @@ public class blueBottomParkRight extends LinearOpMode {
             R2.setPower(power);
             L3.setPower(power);
             L1.setPower(power);
-            R0.setPower(power);
+            if (dir==1) {
+                if (power>0.3) {
+                    R0.setPower(power-0.3);
+                } else {
+                    R0.setPower(power);
+                }
+            }
+            else {
+                R0.setPower(power);
+            }
 
             telemetry.addData("R2 ticks = " , R2.getCurrentPosition());
             telemetry.update();
@@ -282,6 +305,26 @@ public class blueBottomParkRight extends LinearOpMode {
         CE2.setPower(0);
     }
 
+    public void catch_cube(boolean lower) {
+
+        telemetry.addData("CM position", CM.getPosition());
+        telemetry.update();
+        if (lower) {
+            CM.setDirection(Servo.Direction.REVERSE);
+            CM.setPosition(0.55);
+            telemetry.addData("CM position after low", CM.getPosition());
+            telemetry.update();
+        } else {
+            CM.setDirection(Servo.Direction.REVERSE);
+            CM.setPosition(0.05);
+            telemetry.addData("CM position after up", CM.getPosition());
+            telemetry.update();
+        }
+
+        sleep(100);
+
+//        CM.setDirection(Servo.Direction.FORWARD);
+    }
 
     //main
     @Override

@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -7,11 +8,20 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+
 @Autonomous(name = "RedUpperParkLeft", group = "Linear Opmode")
 public class RedUpperParkLeft extends LinearOpMode {
 
     DcMotor R0, R2, L1, L3, CE1, CE2, SCM;
     Servo FNM;
+    BNO055IMU imu;
+    Orientation angle;
+
+
 
     private ElapsedTime timer = new ElapsedTime();
     float power = (float) 0.7;
@@ -40,6 +50,20 @@ public class RedUpperParkLeft extends LinearOpMode {
         SCM.setDirection(DcMotor.Direction.FORWARD);
         FNM.setDirection(Servo.Direction.FORWARD);
 
+        //set gyro setting
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.mode=BNO055IMU.SensorMode.IMU;
+        parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imu.initialize(parameters);
+
+        while (!imu.isGyroCalibrated()) {
+            telemetry.addData("calibrating imu","...");
+            telemetry.update();
+            sleep(50);
+            idle();
+        }
 
         telemetry.addData("Stauts", "success!");
         telemetry.update();
@@ -61,6 +85,39 @@ public class RedUpperParkLeft extends LinearOpMode {
         setMotionEnginesMotorPower(power);
     }
 
+    public void fix_drive_angle() {
+        sleep(1000);
+        angle = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+
+        double curr_angle=angle.firstAngle;
+        if (curr_angle<0) {
+            curr_angle=curr_angle*-1;
+        }
+        double curr_pos_power=power+(curr_angle / 10);
+        if (curr_pos_power>=1) {
+            curr_pos_power=1;
+        }
+        double curr_minus_power=power-((curr_angle / 10));
+        if (curr_minus_power<=0) {
+            curr_minus_power=0.2;
+        }
+        if(angle.firstAngle > 0){
+
+            R0.setPower(curr_minus_power);
+            R2.setPower(curr_pos_power);
+            L3.setPower(curr_pos_power);
+            L1.setPower(curr_minus_power);
+        }
+        if (angle.firstAngle < 0){
+            R0.setPower(curr_pos_power);
+            R2.setPower(curr_minus_power);
+            L3.setPower(curr_minus_power);
+            L1.setPower(curr_pos_power);
+        }
+        telemetry.addData("angle",angle.firstAngle);
+        telemetry.update();
+    }
+
     public void drive(int dir, int cm, double power) {
 
         int target; // the original ticks of the motor ( see datasheet )
@@ -80,14 +137,14 @@ public class RedUpperParkLeft extends LinearOpMode {
         //5--> ROTATE LEFT
         //6--> ROTATE RIGHT
         switch (dir) {
-            case 1: {
+            case 2: {
                 L3.setDirection(DcMotor.Direction.REVERSE);
                 L1.setDirection(DcMotor.Direction.FORWARD);
                 R2.setDirection(DcMotor.Direction.REVERSE);
                 R0.setDirection(DcMotor.Direction.FORWARD);
                 break;
             }
-            case 2: {
+            case 1 : {
                 L3.setDirection(DcMotor.Direction.FORWARD);
                 L1.setDirection(DcMotor.Direction.REVERSE);
                 R2.setDirection(DcMotor.Direction.FORWARD);
@@ -147,7 +204,17 @@ public class RedUpperParkLeft extends LinearOpMode {
         L3.setPower(power);
         L1.setPower(power);
         R2.setPower(power);
-        R0.setPower(power);
+
+        if (dir==1) {
+            if (power>0.3) {
+                R0.setPower(power-0.3);
+            } else {
+                R0.setPower(power);
+            }
+        }
+        else {
+            R0.setPower(power);
+        }
 
         //calc the error - by ticks
         target_position = (L3.getCurrentPosition() + target) - error;
@@ -159,24 +226,36 @@ public class RedUpperParkLeft extends LinearOpMode {
         //run to position
         while ((L3.getCurrentPosition() < target_position)) {
 
+//            if (dir==1) {
+//                fix_drive_angle();
+//            }
+//            else {
+                //acceleration
+                power = power + acceleration;
+                if (power >= 1) {
+                    //dont over 1!
+                    // if the power is 1 --> keep it 1
+                    power = 1;
+                }
 
-            //acceleration
-            power = power + acceleration;
-            if (power >= 1) {
-                //dont over 1!
-                // if the power is 1 --> keep it 1
-                power = 1;
-            }
-
-            //keep update the power
+                //keep update the power
             R2.setPower(power);
             L3.setPower(power);
             L1.setPower(power);
-            R0.setPower(power);
-
+            if (dir==1) {
+                if (power>0.3) {
+                    R0.setPower(power-0.3);
+                } else {
+                    R0.setPower(power);
+                }
+            }
+            else {
+                R0.setPower(power);
+            }
             telemetry.addData("R2 ticks = ", R2.getCurrentPosition());
             telemetry.update();
         }
+
 
         //stop!
         L3.setPower(0);
@@ -201,7 +280,7 @@ public class RedUpperParkLeft extends LinearOpMode {
         telemetry.addData("FNM position", FNM.getPosition());
         if (down){
             FNM.setDirection(Servo.Direction.REVERSE);
-            FNM.setPosition(0.1);
+            FNM.setPosition(0.5);
 //            counter = counter - increment;
         } else {
             FNM.setDirection(Servo.Direction.FORWARD);
@@ -251,58 +330,21 @@ public class RedUpperParkLeft extends LinearOpMode {
         waitForStart();
         //false = up
 
-        drive(2,51,0.9);
-        drive(3,72,0.9);
+
+        drive(2,50,0.9);
+        drive(3,69,0.9);
         drive(3,5,0.15);
         foundationCatchRelease(true);
-        drive(4,70,0.15);
-
+        drive(4,72,0.15);
         foundationCatchRelease(false);
-        drive(1,86,0.9);
-        drive(3,45,0.9);//55
-        drive(2,15,0.9);
-//        drive(3,8,0.9);//18//12
-        drive(1,15,0.9);//37//28
-        //drive(1,20,0.9);
-        //drive(4,25,0.9);
-        //drive(1,70,0.9);
-        //drive(2,5,0.9);
+        drive(1,85,0.9);//55
+        drive(3,50,0.9);
+        drive(2,30,0.9);
+
+        drive(1,70,0.9);
 
 
-        // drive(6,78);
-        //foundationCatchRelease(true,increment);
-        // sleep(1000);
-        //  drive(4, 74);
-        //  foundationCatchRelease(false,increment);
-        // sleep(30000);
 
-
-//        drive(1,30)       ;
-        //int distance=distanceToTurn(90);
-//        drive(6,distance)
-        /*
-        drive(2, 20);
-        //drive bwd to be front the middle of the foundation
-        drive(3, 78);
-        //drive right to hook the foundation
-        foundationCatchRelease(true,increment);
-        sleep(5000);
-        //should be a hook command to pick up the foundation
-        drive(4, 74);
-        //when play button is pressed
-        sleep(5000);
-        foundationCatchRelease(false,increment);
-        //should be a hook command to drop down the foundation
-        drive(1,78);
-        //to push the foundation
-        drive(3,31);
-        //to push the foundation
-        drive(2,36);
-        //to push foundation
-        drive(1, 50);
-        //park da robo
-
-*/
         while (opModeIsActive()) {
         }
 

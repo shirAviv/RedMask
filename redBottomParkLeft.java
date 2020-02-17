@@ -4,12 +4,14 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Autonomous(name = "redBottomParkLeft", group = "Linear Opmode")
 public class redBottomParkLeft extends LinearOpMode {
 
     DcMotor R0, R2, L1, L3, CE1, CE2, SCM;
+    Servo CM;
     private ElapsedTime timer = new ElapsedTime();
     float power = (float) 0.95;
 
@@ -22,6 +24,8 @@ public class redBottomParkLeft extends LinearOpMode {
         CE1 = hardwareMap.get(DcMotor.class, "CE1");//cube eater 1 (right)
         CE2 = hardwareMap.get(DcMotor.class, "CE2");//cube eater 2 (left)
         SCM = hardwareMap.get(DcMotor.class, "SCM"); //seazer motor (misparaim)
+        CM = hardwareMap.get(Servo.class, "CM");
+
 
         R0.setDirection(DcMotor.Direction.FORWARD);
         R2.setDirection(DcMotor.Direction.FORWARD);
@@ -30,6 +34,7 @@ public class redBottomParkLeft extends LinearOpMode {
         CE1.setDirection(DcMotor.Direction.FORWARD);
         CE2.setDirection(DcMotor.Direction.FORWARD);
         SCM.setDirection(DcMotor.Direction.FORWARD);
+        CM.setDirection(Servo.Direction.FORWARD);
 
 
         telemetry.addData("Stauts", "success!");
@@ -261,7 +266,7 @@ public class redBottomParkLeft extends LinearOpMode {
 
     }
 
-     private void pukeCube() {
+    private void pukeCube() {
 
 
         //==============================s===================================
@@ -281,6 +286,26 @@ public class redBottomParkLeft extends LinearOpMode {
         CE2.setPower(0);
     }
 
+    public void catch_cube(boolean lower) {
+
+        telemetry.addData("CM position", CM.getPosition());
+        telemetry.update();
+        if (lower) {
+            CM.setDirection(Servo.Direction.REVERSE);
+            CM.setPosition(0.55);
+            telemetry.addData("CM position after low", CM.getPosition());
+            telemetry.update();
+        } else {
+            CM.setDirection(Servo.Direction.REVERSE);
+            CM.setPosition(0.05);
+            telemetry.addData("CM position after up", CM.getPosition());
+            telemetry.update();
+        }
+
+        sleep(100);
+
+//        CM.setDirection(Servo.Direction.FORWARD);
+    }
 
 
 
@@ -294,64 +319,6 @@ public class redBottomParkLeft extends LinearOpMode {
         waitForStart();
         //go forward
         drive(1,13);
-        //go right
-        drive(3, 95);
-        //go forward to cube
-        drive(1, 7);
-        eatCube();
-        //go forward while eating cube
-        drive(1,8);//6
-        sleep(100);
-        stopCubeEaters();
-        //go left
-        drive(4,40);
-        //turn 180 degrees.
-        int dist=distanceToTurn(180);
-        drive(5,dist);
-        //drive forward
-        drive(1, 113);
-        pukeCube();
-        //drive forward while releasing
-        drive(1,10);
-        //drive backward
-        drive(2,6);
-        sleep(100);
-        stopCubeEaters();
-        //end first stone
-
-        //drive back
-        drive(2, 96);
-        //turn 180 degrees
-        dist=distanceToTurn(180);
-        drive(6,dist);
-        //drive forwardQ
-        drive(1,30);//30
-        //drive right
-        drive(3, 36 );// 34
-        //drive forward
-        drive(1, 30);//32
-        eatCube();
-        //drive forward while eating cube
-        drive(1,4);
-        sleep(100);
-        stopCubeEaters();
-        //drive left
-        drive(4,40);
-        //turn 180 degrees
-        distanceToTurn(180);
-        drive(5,dist);
-        //drive forward
-        drive(1, 120);
-        pukeCube();
-        //drive forward while releasing cube
-        drive(1,10);
-        sleep(100);
-        //drive backward
-        drive(2,5);
-        sleep(100);
-        stopCubeEaters();
-        drive(4, 15);
-        drive(2, 25);
 
 
 
@@ -367,3 +334,5 @@ public class redBottomParkLeft extends LinearOpMode {
     }
 
 }
+
+

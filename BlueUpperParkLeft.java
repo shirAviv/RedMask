@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -7,11 +8,19 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+
 @Autonomous(name = "BlueUpperParkLeft", group = "Linear Opmode")
 public class BlueUpperParkLeft extends LinearOpMode {
 
     DcMotor R0, R2, L1, L3, CE1, CE2, SCM;
-    Servo FNM;
+    Servo FNM ;
+    BNO055IMU imu;
+    Orientation angle;
+
 
     private ElapsedTime timer = new ElapsedTime();
     float power = (float) 0.7;
@@ -40,6 +49,20 @@ public class BlueUpperParkLeft extends LinearOpMode {
         SCM.setDirection(DcMotor.Direction.FORWARD);
         FNM.setDirection(Servo.Direction.FORWARD);
 
+//set gyro setting
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.mode=BNO055IMU.SensorMode.IMU;
+        parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imu.initialize(parameters);
+
+        while (!imu.isGyroCalibrated()) {
+            telemetry.addData("calibrating imu","...");
+            telemetry.update();
+            sleep(50);
+            idle();
+        }
 
         telemetry.addData("Stauts", "success!");
         telemetry.update();
@@ -61,62 +84,36 @@ public class BlueUpperParkLeft extends LinearOpMode {
         setMotionEnginesMotorPower(power);
     }
 
+    public void fix_drive_angle() {
+        angle = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
 
-    public void drive(int dir) {
-
-        int target; // the original ticks of the motor ( see datasheet )
-        int target_position; //the final position ( ticks )
-        int error = 665; //the original ticks  divide by 3 ( 1993/3 = 665 )
-        int error2; // the target position - original one circle 1328 ( 1993 -665 )
-        double power = 0.2; //power
-        double acceleration = 0.01; // by how much the motor accelerate!
-        //=================================================================
-        target = 1993;//by the datasheet ( see goBilda web Motor 84 RPM )
-
-
-        //set the direction of the motor
-        // 1 --> FWD
-        // not 1 --> BWD
-        if (dir == 1) {
-            L3.setDirection(DcMotor.Direction.FORWARD);
-        } else {
-            L3.setDirection(DcMotor.Direction.REVERSE);
+        double curr_angle=angle.firstAngle;
+        if (curr_angle<0) {
+            curr_angle=curr_angle*-1;
         }
-
-        //the mode of the motor
-        //After using enncoder - do stop and reset
-        L3.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        //mesure the encoder
-        L3.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        //when power is 0 - do a breakes!
-        L3.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-        //supply power from the battery
-        L3.setPower(0.3);
-
-        //calc the error
-        target_position = (L3.getCurrentPosition() + target) - error;
-        error2 = target_position - 1328;
-        target_position = target_position - error2;
-
-        //run to position
-        while (opModeIsActive()&&L3.getCurrentPosition() < target_position) {
-
-            //acceleration
-            power = power + acceleration;
-            if (power >= 1) {
-                //dont over 1!
-                // if the power is 1 --> keep it 1
-                power = 1;
-            }
-
-            //keep update the power
-            L3.setPower(power);
+        double curr_pos_power=power+(curr_angle / 10);
+        if (curr_pos_power>=1) {
+            curr_pos_power=1;
         }
+        double curr_minus_power=power-((curr_angle / 10));
+        if (curr_minus_power<=0) {
+            curr_minus_power=0.2;
+        }
+        if(angle.firstAngle > 0){
 
-        //stop!
-        L3.setPower(0);
+            R0.setPower(curr_minus_power);
+            R2.setPower(curr_pos_power);
+            L3.setPower(curr_pos_power);
+            L1.setPower(curr_minus_power);
+        }
+        if (angle.firstAngle < 0){
+            R0.setPower(curr_pos_power);
+            R2.setPower(curr_minus_power);
+            L3.setPower(curr_minus_power);
+            L1.setPower(curr_pos_power);
+        }
+        telemetry.addData("angle",angle.firstAngle);
+        telemetry.update();
     }
 
 
@@ -139,14 +136,14 @@ public class BlueUpperParkLeft extends LinearOpMode {
         //5--> ROTATE LEFT
         //6--> ROTATE RIGHT
         switch (dir) {
-            case 1: {
+            case 2: {
                 L3.setDirection(DcMotor.Direction.REVERSE);
                 L1.setDirection(DcMotor.Direction.FORWARD);
                 R2.setDirection(DcMotor.Direction.REVERSE);
                 R0.setDirection(DcMotor.Direction.FORWARD);
                 break;
             }
-            case 2: {
+            case 1: {
                 L3.setDirection(DcMotor.Direction.FORWARD);
                 L1.setDirection(DcMotor.Direction.REVERSE);
                 R2.setDirection(DcMotor.Direction.FORWARD);
@@ -206,7 +203,17 @@ public class BlueUpperParkLeft extends LinearOpMode {
         L3.setPower(power);
         L1.setPower(power);
         R2.setPower(power);
-        R0.setPower(power);
+
+        if (dir==1) {
+            if (power>0.3) {
+                R0.setPower(power-0.3);
+            } else {
+                R0.setPower(power);
+            }
+        }
+        else {
+            R0.setPower(power);
+        }
 
         //calc the error - by ticks
         target_position = (L3.getCurrentPosition() + target) - error;
@@ -218,20 +225,28 @@ public class BlueUpperParkLeft extends LinearOpMode {
         //run to position
         while (opModeIsActive()&&(L3.getCurrentPosition() < target_position)) {
 
+                //acceleration
+                power = power + acceleration;
+                if (power >= 1) {
+                    //dont over 1!
+                    // if the power is 1 --> keep it 1
+                    power = 1;
+                }
 
-            //acceleration
-            power = power + acceleration;
-            if (power >= 1) {
-                //dont over 1!
-                // if the power is 1 --> keep it 1
-                power = 1;
-            }
-
-            //keep update the power
-            R2.setPower(power);
-            L3.setPower(power);
-            L1.setPower(power);
-            R0.setPower(power);
+                //keep update the power
+                R2.setPower(power);
+                L3.setPower(power);
+                L1.setPower(power);
+               if (dir==1) {
+                    if (power>0.3) {
+                        R0.setPower(power-0.3);
+                    } else {
+                        R0.setPower(power);
+                    }
+                }
+                else {
+                    R0.setPower(power);
+                }
 
             telemetry.addData("R2 ticks = ", R2.getCurrentPosition());
             telemetry.update();
@@ -253,7 +268,6 @@ public class BlueUpperParkLeft extends LinearOpMode {
         amountToTurn = amountToTurn / 4;
         return amountToTurn;
     }
-
 
     private void foundationCatchRelease(boolean down) {
 
@@ -297,8 +311,6 @@ public class BlueUpperParkLeft extends LinearOpMode {
         R0.setPower(0);
     }
 
-
-    //main
     @Override
     public void runOpMode() throws InterruptedException {
 
@@ -307,19 +319,19 @@ public class BlueUpperParkLeft extends LinearOpMode {
         //test();
         waitForStart();
         //false = up
-        sleep(13000);
-        drive(1, 51,0.9);
+//        sleep(13000);
+        drive(1, 50,0.9);
         drive(3,72,0.9);
         drive(3,5,0.15);
         foundationCatchRelease(true);
-        drive(4, 70,0.15);
+        drive(4, 72,0.15);
         foundationCatchRelease(false);
-        drive(2, 86,0.9);
-        drive(3, 55,0.9);
-        drive(1, 32,0.9);
-        drive(2,20,0.9);
-        drive(4,50,0.9);
-        drive(2, 70,0.9);
+        drive(2, 95,0.9);
+        drive(3, 50,0.9);
+        drive(1, 30,0.9);
+        drive(2, 20,0.9);
+        drive(4,25,0.9);
+        drive(2, 50,0.9);
 
         // drive(6,78);
         //foundationCatchRelease(true,increment);

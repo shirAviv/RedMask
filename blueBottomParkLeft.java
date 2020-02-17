@@ -1,18 +1,35 @@
 package org.firstinspires.ftc.teamcode;
 
+import android.graphics.Color;
+
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+
 @Autonomous(name = "blueBottomParkLeft", group = "Linear Opmode")
 public class blueBottomParkLeft extends LinearOpMode {
+    ColorSensor sensorColor;
+    DistanceSensor sensorDistance;
 
     DcMotor R0, R2, L1, L3, CE1, CE2, SCM;
+    Servo CM;
     private ElapsedTime timer = new ElapsedTime();
     float power = (float) 0.7;
+    float hsvValues[] = {0F, 0F, 0F};
+
+    // values is a reference to the hsvValues array.
+    final float values[] = hsvValues;
+
+    // sometimes it helps to multiply the raw RGB values with a scale factor
+    // to amplify/attentuate the measured values.
+    final double SCALE_FACTOR = 255;
+
 
     public void setup() {
 
@@ -23,6 +40,9 @@ public class blueBottomParkLeft extends LinearOpMode {
         CE1 = hardwareMap.get(DcMotor.class, "CE1");//cube eater 1 (right)
         CE2 = hardwareMap.get(DcMotor.class, "CE2");//cube eater 2 (left)
         SCM = hardwareMap.get(DcMotor.class, "SCM"); //seazer motor (misparaim)
+        CM = hardwareMap.get(Servo.class, "CM");
+        sensorColor = hardwareMap.get(ColorSensor.class, "color");
+        sensorDistance = hardwareMap.get(DistanceSensor.class, "color");
 
         R0.setDirection(DcMotor.Direction.FORWARD);
         R2.setDirection(DcMotor.Direction.FORWARD);
@@ -31,6 +51,8 @@ public class blueBottomParkLeft extends LinearOpMode {
         CE1.setDirection(DcMotor.Direction.FORWARD);
         CE2.setDirection(DcMotor.Direction.FORWARD);
         SCM.setDirection(DcMotor.Direction.FORWARD);
+        CM.setDirection(Servo.Direction.FORWARD);
+        sensorColor.enableLed(true);
 
 
         telemetry.addData("Stauts", "success!");
@@ -54,68 +76,14 @@ public class blueBottomParkLeft extends LinearOpMode {
     }
 
 
-    public void drive(int dir) {
+    public void drive(int dir, int cm) {
 
         int target; // the original ticks of the motor ( see datasheet )
-        int target_position; //the final position ( ticks )
-        int error = 665; //the original ticks  divide by 3 ( 1993/3 = 665 )
-        int error2; // the target position - original one circle 1328 ( 1993 -665 )
-        double power = 0.2; //power
-        double acceleration = 0.01; // by how much the motor accelerate!
-        //=================================================================
-        target = 1993;//by the datasheet ( see goBilda web Motor 84 RPM )
+        int target_position_L1; //the final position ( ticks )
+        int target_position_L3; //the final position ( ticks )
+        int target_position_R0; //the final position ( ticks )
+        int target_position_R2; //the final position ( ticks )
 
-
-        //set the direction of the motor
-        // 1 --> FWD
-        // not 1 --> BWD
-        if (dir == 1) {
-            L3.setDirection(DcMotor.Direction.FORWARD);
-        } else {
-            L3.setDirection(DcMotor.Direction.REVERSE);
-        }
-
-        //the mode of the motor
-        //After using enncoder - do stop and reset
-        L3.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        //mesure the encoder
-        L3.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        //when power is 0 - do a breakes!
-        L3.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-        //supply power from the battery
-        L3.setPower(0.3);
-
-        //calc the error
-        target_position = (L3.getCurrentPosition() + target) - error;
-        error2 = target_position - 1328;
-        target_position = target_position - error2;
-
-        //run to position
-        while (opModeIsActive()&&(L3.getCurrentPosition() < target_position)) {
-
-            //acceleration
-            power = power + acceleration;
-            if (power >= 1) {
-                //dont over 1!
-                // if the power is 1 --> keep it 1
-                power = 1;
-            }
-
-            //keep update the power
-            L3.setPower(power);
-        }
-
-        //stop!
-        L3.setPower(0);
-    }
-
-
-    public void drive(int dir , int cm) {
-
-        int target; // the original ticks of the motor ( see datasheet )
-        int target_position; //the final position ( ticks )
         int error = 0; //the original ticks  divide by 3 ( 1993/3 = 665 )
         int error2; // the target position - original one circle 1328 ( 1993 -665 )
         double power = 0.7; //power
@@ -132,17 +100,17 @@ public class blueBottomParkLeft extends LinearOpMode {
         //6--> ROTATE RIGHT
         switch (dir) {
             case 1: {
-                L3.setDirection(DcMotor.Direction.REVERSE);
-                L1.setDirection(DcMotor.Direction.FORWARD);
-                R2.setDirection(DcMotor.Direction.REVERSE);
-                R0.setDirection(DcMotor.Direction.FORWARD);
-                break;
-            }
-            case 2: {
                 L3.setDirection(DcMotor.Direction.FORWARD);
                 L1.setDirection(DcMotor.Direction.REVERSE);
                 R2.setDirection(DcMotor.Direction.FORWARD);
                 R0.setDirection(DcMotor.Direction.REVERSE);
+                break;
+            }
+            case 2: {
+                L3.setDirection(DcMotor.Direction.REVERSE);
+                L1.setDirection(DcMotor.Direction.FORWARD);
+                R2.setDirection(DcMotor.Direction.REVERSE);
+                R0.setDirection(DcMotor.Direction.FORWARD);
                 break;
             }
             case 3: {
@@ -162,17 +130,17 @@ public class blueBottomParkLeft extends LinearOpMode {
             }
 
             case 5: {
-                R0.setDirection(DcMotor.Direction.REVERSE);
-                R2.setDirection(DcMotor.Direction.REVERSE);
-                L1.setDirection(DcMotor.Direction.REVERSE);
-                L3.setDirection(DcMotor.Direction.REVERSE);
-                break;
-            }
-            case 6:{
                 R0.setDirection(DcMotor.Direction.FORWARD);
                 R2.setDirection(DcMotor.Direction.FORWARD);
                 L1.setDirection(DcMotor.Direction.FORWARD);
                 L3.setDirection(DcMotor.Direction.FORWARD);
+                break;
+            }
+            case 6: {
+                R0.setDirection(DcMotor.Direction.REVERSE);
+                R2.setDirection(DcMotor.Direction.REVERSE);
+                L1.setDirection(DcMotor.Direction.REVERSE);
+                L3.setDirection(DcMotor.Direction.REVERSE);
                 break;
             }
         }
@@ -183,6 +151,7 @@ public class blueBottomParkLeft extends LinearOpMode {
         L1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         R2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         R0.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
         //mesure the encoder
         L3.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         L1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -201,24 +170,30 @@ public class blueBottomParkLeft extends LinearOpMode {
         R0.setPower(power);
 
         //calc the error - by ticks
-        target_position = (L3.getCurrentPosition() + target) - error;
+        target_position_L3 = (L3.getCurrentPosition() + target) - error;
+        target_position_L1 = (L3.getCurrentPosition() + target) - error;
+        target_position_R0 = (L3.getCurrentPosition() + target) - error;
+        target_position_R2 = (L3.getCurrentPosition() + target) - error;
+
         // be safe with abs value
         //  error2 = Math.abs(target_position - 1328);
         // target_position = Math.abs(target_position - error2);
 
 
-
         //run to position
-        while (opModeIsActive()&&(L3.getCurrentPosition() < target_position) ) {
+        while (opModeIsActive() && (L3.getCurrentPosition() < target_position_L3) ) {
 
 
             //acceleration
+
+            /*
             power = power + acceleration;
-            if (power >= 1) {
-                //dont over 1!
-                // if the power is 1 --> keep it 1
-                power = 1;
+            if (power >= 0.9) {
+//                dont over 1!
+//                 if the power is 1 --> keep it 1
+                power = 0.9;
             }
+            */
 
             //keep update the power
             R2.setPower(power);
@@ -226,7 +201,7 @@ public class blueBottomParkLeft extends LinearOpMode {
             L1.setPower(power);
             R0.setPower(power);
 
-            telemetry.addData("R2 ticks = " , R2.getCurrentPosition());
+            telemetry.addData("R2 ticks = ", R2.getCurrentPosition());
             telemetry.update();
         }
 
@@ -246,6 +221,7 @@ public class blueBottomParkLeft extends LinearOpMode {
         amountToTurn = amountToTurn / 4;
         return amountToTurn;
     }
+
     private void eatCube() {
 
 
@@ -278,20 +254,103 @@ public class blueBottomParkLeft extends LinearOpMode {
     }
 
 
-    public void stopCubeEaters(){
+    public void stopCubeEaters() {
         CE1.setPower(0);
         CE2.setPower(0);
     }
 
+    public void catch_release_cube(boolean lower) {
 
+        telemetry.addData("CM position", CM.getPosition());
+        telemetry.update();
+        if (lower) {
+            CM.setDirection(Servo.Direction.REVERSE);
+            CM.setPosition(0.55);
+            telemetry.addData("CM position after low", CM.getPosition());
+            telemetry.update();
+        } else {
+            CM.setDirection(Servo.Direction.REVERSE);
+            CM.setPosition(0.05);
+            telemetry.addData("CM position after up", CM.getPosition());
+            telemetry.update();
+        }
+
+        sleep(100);
+
+//        CM.setDirection(Servo.Direction.FORWARD);
+    }
+
+    public void move_cube_to_building_zone(int distance) {
+        drive(3, 25);
+        drive(2,distance);
+        catch_release_cube(false);
+    }
     //main
     @Override
     public void runOpMode() throws InterruptedException {
 
+
         //init mode
         setup();
         waitForStart();
-        //go forward
+        Color.RGBToHSV((int) (sensorColor.red() * SCALE_FACTOR),
+                (int) (sensorColor.green() * SCALE_FACTOR),
+                (int) (sensorColor.blue() * SCALE_FACTOR),
+                hsvValues);
+        //catch_release_cube(true);
+        sleep(2000);
+        drive(1, 36);
+        drive(4, 72);
+
+
+        sensorColor.enableLed(true);
+        //found skystone
+        if (sensorColor.green() <= 2000 && sensorColor.red() <= 2000) {
+            catch_release_cube(true);
+            sensorColor.enableLed(false);
+            //fix according to real distance
+            move_cube_to_building_zone(150);
+            drive(1,150);
+            drive(1,60);
+            catch_release_cube(true);
+            //fix according to real distance
+            move_cube_to_building_zone(210);
+            //park
+            drive(1,40);
+        } else {
+            drive(1, 20);
+            sensorColor.enableLed(true);
+            if (sensorColor.green() <= 2000 && sensorColor.red() <= 2000) {
+                catch_release_cube(true);
+                sensorColor.enableLed(false);
+                move_cube_to_building_zone(170);
+                drive(1,170);
+                drive(1,60);
+                catch_release_cube(true);
+                //fix according to real distance
+                move_cube_to_building_zone(230);
+                //park
+                drive(1,40);
+            } else {
+                drive(1, 20);
+                catch_release_cube(true);
+                move_cube_to_building_zone(190);
+                drive(1,190);
+                drive(1,60);
+                catch_release_cube(true);
+                //fix according to real distance
+                move_cube_to_building_zone(250);
+                //park
+                drive(1,40);
+            }
+        }
+
+
+//        drive(1,13);
+            //catch_release_cube(false);
+
+
+    /*    //go forward
         drive(1,13);
         //go left
         drive(4, 95);
@@ -353,13 +412,13 @@ public class blueBottomParkLeft extends LinearOpMode {
         drive(2, 25);
         drive(4, 35 );
         //end this should pick a cube from the left side of the Arena. :)
+*/
 
 
-
-
-        while (opModeIsActive()) {
-        }
+            while (opModeIsActive()) {
+            }
 
     }
 
 }
+

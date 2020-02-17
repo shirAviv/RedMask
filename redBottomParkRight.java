@@ -7,10 +7,12 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+
 @Autonomous(name = "redBottomParkRight", group = "Linear Opmode")
 public class redBottomParkRight extends LinearOpMode {
 
     DcMotor R0, R2, L1, L3, CE1, CE2, SCM;
+    Servo CM;
     private ElapsedTime timer = new ElapsedTime();
     float power = (float) 0.95;
 
@@ -23,6 +25,8 @@ public class redBottomParkRight extends LinearOpMode {
         CE1 = hardwareMap.get(DcMotor.class, "CE1");//cube eater 1 (right)
         CE2 = hardwareMap.get(DcMotor.class, "CE2");//cube eater 2 (left)
         SCM = hardwareMap.get(DcMotor.class, "SCM"); //seazer motor (misparaim)
+        CM = hardwareMap.get(Servo.class, "CM");
+
 
         R0.setDirection(DcMotor.Direction.FORWARD);
         R2.setDirection(DcMotor.Direction.FORWARD);
@@ -31,6 +35,7 @@ public class redBottomParkRight extends LinearOpMode {
         CE1.setDirection(DcMotor.Direction.FORWARD);
         CE2.setDirection(DcMotor.Direction.FORWARD);
         SCM.setDirection(DcMotor.Direction.FORWARD);
+        CM.setDirection(Servo.Direction.FORWARD);
 
 
         telemetry.addData("Stauts", "success!");
@@ -282,6 +287,26 @@ public class redBottomParkRight extends LinearOpMode {
         CE2.setPower(0);
     }
 
+    public void catch_cube(boolean lower) {
+
+        telemetry.addData("CM position", CM.getPosition());
+        telemetry.update();
+        if (lower) {
+            CM.setDirection(Servo.Direction.REVERSE);
+            CM.setPosition(0.55);
+            telemetry.addData("CM position after low", CM.getPosition());
+            telemetry.update();
+        } else {
+            CM.setDirection(Servo.Direction.REVERSE);
+            CM.setPosition(0.05);
+            telemetry.addData("CM position after up", CM.getPosition());
+            telemetry.update();
+        }
+
+        sleep(100);
+
+//        CM.setDirection(Servo.Direction.FORWARD);
+    }
 
 
 
