@@ -309,7 +309,6 @@ public class BlueUpperParkRight extends LinearOpMode {
 
         //init mode
         setup();
-        //test();
         waitForStart();
         //false = up
         drive(1, 50,0.9);

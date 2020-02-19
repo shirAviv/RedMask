@@ -332,6 +332,7 @@ public class BlueUpperParkLeft extends LinearOpMode {
         drive(2, 20,0.9);
         drive(4,25,0.9);
         drive(2, 50,0.9);
+        drive(4,40,0.9);
 
         // drive(6,78);
         //foundationCatchRelease(true,increment);

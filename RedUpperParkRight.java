@@ -321,21 +321,25 @@ public class RedUpperParkRight extends LinearOpMode {
 //        foundationHandler.setTelemetry(telemetry);
         //init mode
         setup();
+
+
         //test();
         waitForStart();
         //false = up
+        FNM.setDirection(Servo.Direction.FORWARD);
+        FNM.setPosition(0);
 
-        drive(2,50,0.9);
-        drive(3,69,0.9);
+        drive(2,55,0.9);
+        drive(3,65,0.9);
         drive(3,5,0.15);
         foundationCatchRelease(true);
         drive(4,72,0.15);
         foundationCatchRelease(false);
-        drive(1,85,0.9);
-        drive(3,50,0.9);
-        drive(2,30,0.9);
+        drive(1,63,0.9);
+        drive(3,30,0.9);
+//        drive(2,30,0.9);
 
-        drive(1,70,0.9);
+        drive(1,60,0.9);
         drive(4,25,0.9);
 
 

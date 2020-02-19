@@ -408,7 +408,7 @@ public class blueBottomParkRight extends LinearOpMode {
         setup();
         waitForStart();
         //drive to the cube
-        drive(1,30);
+        drive(2,20);
         drive(4, 60);
 //        sensorColor.enableLed(true);
         telemetry.addData("sensor dist ",sensorDistance.getDistance(DistanceUnit.CM));
@@ -440,8 +440,8 @@ public class blueBottomParkRight extends LinearOpMode {
 
             sensorColor.enableLed(false);
             drive(3, 30);
-            move_cube_to_building_zone(120);
-            drive(3, 170);
+            move_cube_to_building_zone(100);
+            drive(3, 150);
             turn_by_gyro(1, 90);
 
             drive(4, 30);
@@ -458,11 +458,11 @@ public class blueBottomParkRight extends LinearOpMode {
             drive(3, 30);
             turn_by_gyro(0,15);
 
-            move_cube_to_building_zone(180);
-            drive(3, 55);
+            move_cube_to_building_zone(150);
+            drive(3, 25);
             drive(1,25);
         } else {
-            drive(1, 20);
+            drive(1, 22);
             sensorColor.enableLed(true);
             telemetry.addData("sensor dist ",sensorDistance.getDistance(DistanceUnit.CM));
             telemetry.update();
@@ -488,6 +488,8 @@ public class blueBottomParkRight extends LinearOpMode {
                 sleep(200);
                 drive(4,1);
                 sleep(200);
+                drive(4,1);
+                sleep(200);
 
                 sleep(250);
                 catch_release_cube(true);
@@ -495,10 +497,10 @@ public class blueBottomParkRight extends LinearOpMode {
                 sensorColor.enableLed(false);
                 drive(3, 20);
                 move_cube_to_building_zone(130);
-                drive(3, 160);
+                drive(3, 164);
                 //turn first so that we dont hit the wall
-                turn_by_gyro(0, 95);
-                drive(1, 8);
+                turn_by_gyro(1, 95);
+                drive(1, 5);
 
                 drive(4, 26);
                 while (sensorDistance.getDistance(DistanceUnit.CM)>3) {
@@ -512,17 +514,18 @@ public class blueBottomParkRight extends LinearOpMode {
                 drive(3, 20);
                 turn_by_gyro(0,15);
 
-                move_cube_to_building_zone(180);
-                drive(3, 55);
+                move_cube_to_building_zone(160);
+                drive(3, 35);
                 drive(1,10);
             } else {
-                drive(1, 18);
+                drive(1, 25);
 //                sensorColor.enableLed(true);
 //                if (sensorColor.green() <= 2000 && sensorColor.red() <= 2000) {
-                while (sensorDistance.getDistance(DistanceUnit.CM)>2) {
+                while (sensorDistance.getDistance(DistanceUnit.CM)>3) {
                     drive(4,1);
                     sleep(200);
                 }
+                drive(4,1);
                 sleep(250);
                 catch_release_cube(true);
                 sleep(250);
