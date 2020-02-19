@@ -1,23 +1,66 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 
 @Autonomous(name = "redBottomParkRight", group = "Linear Opmode")
 public class redBottomParkRight extends LinearOpMode {
 
+    ColorSensor sensorColor;
+    DistanceSensor sensorDistance;
     DcMotor R0, R2, L1, L3, CE1, CE2, SCM;
     Servo CM;
+    BNO055IMU imu;
+    Orientation angle;
     private ElapsedTime timer = new ElapsedTime();
     float power = (float) 0.95;
 
-    public void setup() {
+    public void setup_gyro() {
 
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.mode = BNO055IMU.SensorMode.IMU;
+        parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imu.initialize(parameters);
+
+        while (!imu.isGyroCalibrated()) {
+            telemetry.addData("calibrating imu", "...");
+            telemetry.update();
+            sleep(50);
+            idle();
+        }
+
+    }
+
+    public void reset_gyro()
+    {
+        while (!imu.isGyroCalibrated()) {
+            telemetry.addData("calibrating imu", "...");
+            telemetry.update();
+            sleep(50);
+            idle();
+        }
+    }
+
+
+    public void setup() {
+        sensorColor = hardwareMap.get(ColorSensor.class, "color");
+        sensorDistance = hardwareMap.get(DistanceSensor.class, "color");
         R0 = hardwareMap.get(DcMotor.class, "R0");
         R2 = hardwareMap.get(DcMotor.class, "R2");
         L1 = hardwareMap.get(DcMotor.class, "L1");
@@ -37,11 +80,81 @@ public class redBottomParkRight extends LinearOpMode {
         SCM.setDirection(DcMotor.Direction.FORWARD);
         CM.setDirection(Servo.Direction.FORWARD);
 
+        setup_gyro();
 
         telemetry.addData("Stauts", "success!");
         telemetry.update();
     }
 
+    public void turn_by_gyro(int dir, double degrees) {
+        //0 == left
+        //1 == right
+
+        reset_gyro();
+
+        double error = 13;
+        if (dir == 1) {
+            R0.setDirection(DcMotor.Direction.FORWARD);
+            R2.setDirection(DcMotor.Direction.FORWARD);
+            L1.setDirection(DcMotor.Direction.FORWARD);
+            L3.setDirection(DcMotor.Direction.FORWARD);
+
+
+        } else {
+            //left
+            R0.setDirection(DcMotor.Direction.REVERSE);
+            R2.setDirection(DcMotor.Direction.REVERSE);
+            L1.setDirection(DcMotor.Direction.REVERSE);
+            L3.setDirection(DcMotor.Direction.REVERSE);
+        }
+
+
+        power =(float) 0.95; //do not change!!!!
+        L3.setPower(power);
+        L1.setPower(power);
+        R2.setPower(power);
+        R0.setPower(power);
+        angle = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        telemetry.addData("the first angle = ", angle.firstAngle);
+        telemetry.update();
+        double original_angle=angle.firstAngle;
+        //calc the error
+        if(dir==0) {
+            degrees = original_angle+degrees - error;
+            while (angle.firstAngle < degrees) {
+
+                angle = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+                telemetry.addData("the first angle = ", angle.firstAngle);
+                telemetry.addData("angle = ", angle.firstAngle);
+                telemetry.addData("degrees = ",degrees);
+                telemetry.update();
+
+            }
+            power = 0;
+            L3.setPower(power);
+            L1.setPower(power);
+            R2.setPower(power);
+            R0.setPower(power);
+        }else{
+            degrees = original_angle-(degrees - error);
+            while (angle.firstAngle > degrees) {
+
+                angle = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+                telemetry.addData("the first angle = ", angle.firstAngle);
+                telemetry.addLine();
+                telemetry.addData("angle = ", angle.firstAngle);
+                telemetry.addLine();
+                telemetry.addData("degrees = ",degrees);
+                telemetry.update();
+
+            }
+            power = 0;
+            L3.setPower(power);
+            L1.setPower(power);
+            R2.setPower(power);
+            R0.setPower(power);
+        }
+    }
 
     public void setMotionEnginesMotorPower(float power) {
         R0.setPower(power);
@@ -136,14 +249,14 @@ public class redBottomParkRight extends LinearOpMode {
         //5--> ROTATE LEFT
         //6--> ROTATE RIGHT
         switch (dir) {
-            case 1: {
+            case 2: {
                 L3.setDirection(DcMotor.Direction.REVERSE);
                 L1.setDirection(DcMotor.Direction.FORWARD);
                 R2.setDirection(DcMotor.Direction.REVERSE);
                 R0.setDirection(DcMotor.Direction.FORWARD);
                 break;
             }
-            case 2: {
+            case 1: {
                 L3.setDirection(DcMotor.Direction.FORWARD);
                 L1.setDirection(DcMotor.Direction.REVERSE);
                 R2.setDirection(DcMotor.Direction.FORWARD);
@@ -287,13 +400,13 @@ public class redBottomParkRight extends LinearOpMode {
         CE2.setPower(0);
     }
 
-    public void catch_cube(boolean lower) {
+    public void catch_release_cube(boolean lower) {
 
         telemetry.addData("CM position", CM.getPosition());
         telemetry.update();
         if (lower) {
             CM.setDirection(Servo.Direction.REVERSE);
-            CM.setPosition(0.55);
+            CM.setPosition(0.60);
             telemetry.addData("CM position after low", CM.getPosition());
             telemetry.update();
         } else {
@@ -302,10 +415,22 @@ public class redBottomParkRight extends LinearOpMode {
             telemetry.addData("CM position after up", CM.getPosition());
             telemetry.update();
         }
-
         sleep(100);
 
 //        CM.setDirection(Servo.Direction.FORWARD);
+    }
+
+
+    public void move_cube_to_building_zone(int distance) {
+//        drive(3, 25);
+//        int dist = distanceToTurn(110); //110 degrees = 90
+//        drive(6, dist);
+        turn_by_gyro(1,95);
+        telemetry.addData("moving to building zone","...");
+        telemetry.update();
+        sleep(500);
+        drive(4, distance);
+        catch_release_cube(false);
     }
 
 
@@ -318,77 +443,135 @@ public class redBottomParkRight extends LinearOpMode {
         //init mode
         setup();
         waitForStart();
-        //go forward
-        drive(1,13);
-        //go right
-        drive(3, 95);
-        //go forward to cube
-        drive(1, 7);
-        eatCube();
-        //go forward while eating cube
-        drive(1,6);
-        sleep(100);
-        stopCubeEaters();
-        //go left
-        drive(4,40);
-        //turn 180 degrees.
-        int dist=distanceToTurn(180);
-        drive(5,dist);
-        //drive forward
-        drive(1, 113);
-        pukeCube();
-        //drive forward while releasing
-        drive(1,10);
-        //drive backward
-        drive(2,6);
-        sleep(100);
-        stopCubeEaters();
-        //end first stone
+        //drive to the cube
+        drive(4, 60);
+//        sensorColor.enableLed(true);
+        telemetry.addData("sensor dist ",sensorDistance.getDistance(DistanceUnit.CM));
+        telemetry.update();
+        telemetry.addData("green1",sensorColor.green());
+        telemetry.addData("red1",sensorColor.red());
+        telemetry.update();
+        sleep(1000);
+        if (sensorColor.green() <= 300 && sensorColor.red() <= 200) {
+            telemetry.addData("found ",sensorDistance.getDistance(DistanceUnit.CM));
+            telemetry.update();
+//            while (sensorDistance.getDistance(DistanceUnit.CM)>2) {
+            drive(4,1);
+            sleep(200);
+            drive(4,1);
+            sleep(200);
+            drive(4,1);
+            sleep(200);
+            drive(4,1);
+            sleep(200);
+////
+//            }
+            //sky stone
+            sleep(250);
+            catch_release_cube(true);
+            sleep(250);
 
-        //drive back
-        drive(2, 96);
-        //turn 180 degrees
-        dist=distanceToTurn(180);
-        drive(6,dist);
-        //drive forward
-        drive(1,30);
-        //drive right
-        drive(3, 34);//34
-        //drive forward
-        drive(1, 32);
-        eatCube();
-        //drive forward while eating cube
-        drive(1,4);
-        sleep(100);
-        stopCubeEaters();
-        //drive left
-        drive(4,40);
-        //turn 180 degrees
-        distanceToTurn(180);
-        drive(5,dist);
-        //drive forward
-        drive(1, 120);
-        pukeCube();
-        //drive forward while releasing cube
-        drive(1,10);
-        sleep(100);
-        //drive backward
-        drive(2,5);
-        sleep(100);
-        stopCubeEaters();
-        drive(3, 25);
-        drive(2, 5);
+            sensorColor.enableLed(false);
+            drive(3, 20);
+            move_cube_to_building_zone(120);
+            drive(3, 168);
+            turn_by_gyro(0, 95);
 
+            drive(4, 24);
+            while (sensorDistance.getDistance(DistanceUnit.CM)>3) {
+                drive(4,1);
+                sleep(200);
+            }
+            drive(4,1);
+            sleep(250);
+            catch_release_cube(true);
+            sleep(250);
 
+            drive(3, 20);
+            turn_by_gyro(1,15);
+            move_cube_to_building_zone(180);
+            drive(3, 55);
+            drive(1,40);
+        } else {
+            drive(2, 20);
+            drive(4,1);
+            sleep(200);
+            sensorColor.enableLed(true);
+            telemetry.addData("sensor dist ",sensorDistance.getDistance(DistanceUnit.CM));
+            telemetry.update();
+//            sleep(1000);
+//            while (sensorDistance.getDistance(DistanceUnit.CM)>5) {
+//                drive(4,1);
+//                sleep(1000);
+//            }
+            telemetry.addData("green2",sensorColor.green());
+            telemetry.addData("red2",sensorColor.red());
+            telemetry.update();
+            sleep(1000);
+            if (sensorColor.green() <= 300 && sensorColor.red() <= 200) {
+                telemetry.addData("found #2 ",sensorDistance.getDistance(DistanceUnit.CM));
+                telemetry.update();
+//                while (sensorDistance.getDistance(DistanceUnit.CM)>2) {
+                    drive(4,1);
+                    sleep(200);
+                    drive(4,1);
+                    sleep(200);
+                    drive(4,1);
+                    sleep(200);
 
-        //end this should pick a cube from the right side of the Arena. :)
+//                }
+                sleep(250);
+                catch_release_cube(true);
+                sleep(250);
+                sensorColor.enableLed(false);
+                drive(3, 20);
+                move_cube_to_building_zone(130);
+                drive(3, 160);
+                //turn first so that we dont hit the wall
+                turn_by_gyro(0, 95);
+                drive(2, 8);
 
+                drive(4, 26);
+                while (sensorDistance.getDistance(DistanceUnit.CM)>3) {
+                    drive(4,1);
+                    sleep(200);
+                }
+                drive(4,1);
+                sleep(250);
+                catch_release_cube(true);
+                sleep(250);
+                drive(3, 20);
+                turn_by_gyro(1,15);
+                move_cube_to_building_zone(180);
+                drive(3, 55);
+                drive(1,40);
+            } else {
+                drive(2, 18);
+//                sensorColor.enableLed(true);
+//                if (sensorColor.green() <= 2000 && sensorColor.red() <= 2000) {
+                while (sensorDistance.getDistance(DistanceUnit.CM)>2) {
+                    drive(4,1);
+                    sleep(200);
+                }
+                sleep(250);
+                catch_release_cube(true);
+                sleep(250);
+//                    sensorColor.enableLed(false);
+                drive(3, 15);
+                move_cube_to_building_zone(160);
+                drive(3, 55);
+                drive(1,30);
 
-
+//                drive(3, 40);
+//                catch_release_cube(true);
+//                move_cube_to_building_zone(210);
+//                drive(3, 50);
+            }
+        }
 
         while (opModeIsActive()) {
+
         }
 
     }
-
 }

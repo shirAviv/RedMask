@@ -1,20 +1,72 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 
 @Autonomous(name = "blueBottomParkRight", group = "Linear Opmode")
 public class blueBottomParkRight extends LinearOpMode {
 
+    ColorSensor sensorColor;
+    DistanceSensor sensorDistance;
+
     DcMotor R0, R2, L1, L3, CE1, CE2, SCM;
     Servo CM;
     private ElapsedTime timer = new ElapsedTime();
     float power = (float) 0.7;
+    float hsvValues[] = {0F, 0F, 0F};
+    BNO055IMU imu;
+    Orientation angle;
+
+
+    // values is a reference to the hsvValues array.
+    final float values[] = hsvValues;
+
+    // sometimes it helps to multiply the raw RGB values with a scale factor
+    // to amplify/attentuate the measured values.
+    final double SCALE_FACTOR = 255;
+
+    public void setup_gyro() {
+
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.mode = BNO055IMU.SensorMode.IMU;
+        parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imu.initialize(parameters);
+
+        while (!imu.isGyroCalibrated()) {
+            telemetry.addData("calibrating imu", "...");
+            telemetry.update();
+            sleep(50);
+            idle();
+        }
+
+    }
+
+    public void reset_gyro()
+    {
+        while (!imu.isGyroCalibrated()) {
+            telemetry.addData("calibrating imu", "...");
+            telemetry.update();
+            sleep(50);
+            idle();
+        }
+    }
+
 
     public void setup() {
 
@@ -26,7 +78,8 @@ public class blueBottomParkRight extends LinearOpMode {
         CE2 = hardwareMap.get(DcMotor.class, "CE2");//cube eater 2 (left)
         SCM = hardwareMap.get(DcMotor.class, "SCM"); //seazer motor (misparaim)
         CM = hardwareMap.get(Servo.class, "CM");
-
+        sensorColor = hardwareMap.get(ColorSensor.class, "color");
+        sensorDistance = hardwareMap.get(DistanceSensor.class, "color");
 
         R0.setDirection(DcMotor.Direction.FORWARD);
         R2.setDirection(DcMotor.Direction.FORWARD);
@@ -36,6 +89,8 @@ public class blueBottomParkRight extends LinearOpMode {
         CE2.setDirection(DcMotor.Direction.FORWARD);
         SCM.setDirection(DcMotor.Direction.FORWARD);
         CM.setDirection(Servo.Direction.FORWARD);
+        sensorColor.enableLed(true);
+        setup_gyro();
 
 
         telemetry.addData("Stauts", "success!");
@@ -59,68 +114,14 @@ public class blueBottomParkRight extends LinearOpMode {
     }
 
 
-    public void drive(int dir) {
+    public void drive(int dir, int cm) {
 
         int target; // the original ticks of the motor ( see datasheet )
-        int target_position; //the final position ( ticks )
-        int error = 665; //the original ticks  divide by 3 ( 1993/3 = 665 )
-        int error2; // the target position - original one circle 1328 ( 1993 -665 )
-        double power = 0.2; //power
-        double acceleration = 0.01; // by how much the motor accelerate!
-        //=================================================================
-        target = 1993;//by the datasheet ( see goBilda web Motor 84 RPM )
+        int target_position_L1; //the final position ( ticks )
+        int target_position_L3; //the final position ( ticks )
+        int target_position_R0; //the final position ( ticks )
+        int target_position_R2; //the final position ( ticks )
 
-
-        //set the direction of the motor
-        // 1 --> FWD
-        // not 1 --> BWD
-        if (dir == 1) {
-            L3.setDirection(DcMotor.Direction.FORWARD);
-        } else {
-            L3.setDirection(DcMotor.Direction.REVERSE);
-        }
-
-        //the mode of the motor
-        //After using enncoder - do stop and reset
-        L3.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        //mesure the encoder
-        L3.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        //when power is 0 - do a breakes!
-        L3.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-        //supply power from the battery
-        L3.setPower(0.3);
-
-        //calc the error
-        target_position = (L3.getCurrentPosition() + target) - error;
-        error2 = target_position - 1328;
-        target_position = target_position - error2;
-
-        //run to position
-        while (opModeIsActive()&&L3.getCurrentPosition() < target_position) {
-
-            //acceleration
-            power = power + acceleration;
-            if (power >= 1) {
-                //dont over 1!
-                // if the power is 1 --> keep it 1
-                power = 1;
-            }
-
-            //keep update the power
-            L3.setPower(power);
-        }
-
-        //stop!
-        L3.setPower(0);
-    }
-
-
-    public void drive(int dir , int cm) {
-
-        int target; // the original ticks of the motor ( see datasheet )
-        int target_position; //the final position ( ticks )
         int error = 0; //the original ticks  divide by 3 ( 1993/3 = 665 )
         int error2; // the target position - original one circle 1328 ( 1993 -665 )
         double power = 0.7; //power
@@ -136,18 +137,18 @@ public class blueBottomParkRight extends LinearOpMode {
         //5--> ROTATE LEFT
         //6--> ROTATE RIGHT
         switch (dir) {
-            case 2: {
-                L3.setDirection(DcMotor.Direction.REVERSE);
-                L1.setDirection(DcMotor.Direction.FORWARD);
-                R2.setDirection(DcMotor.Direction.REVERSE);
-                R0.setDirection(DcMotor.Direction.FORWARD);
-                break;
-            }
             case 1: {
                 L3.setDirection(DcMotor.Direction.FORWARD);
                 L1.setDirection(DcMotor.Direction.REVERSE);
                 R2.setDirection(DcMotor.Direction.FORWARD);
                 R0.setDirection(DcMotor.Direction.REVERSE);
+                break;
+            }
+            case 2: {
+                L3.setDirection(DcMotor.Direction.REVERSE);
+                L1.setDirection(DcMotor.Direction.FORWARD);
+                R2.setDirection(DcMotor.Direction.REVERSE);
+                R0.setDirection(DcMotor.Direction.FORWARD);
                 break;
             }
             case 3: {
@@ -167,17 +168,17 @@ public class blueBottomParkRight extends LinearOpMode {
             }
 
             case 5: {
-                R0.setDirection(DcMotor.Direction.REVERSE);
-                R2.setDirection(DcMotor.Direction.REVERSE);
-                L1.setDirection(DcMotor.Direction.REVERSE);
-                L3.setDirection(DcMotor.Direction.REVERSE);
-                break;
-            }
-            case 6:{
                 R0.setDirection(DcMotor.Direction.FORWARD);
                 R2.setDirection(DcMotor.Direction.FORWARD);
                 L1.setDirection(DcMotor.Direction.FORWARD);
                 L3.setDirection(DcMotor.Direction.FORWARD);
+                break;
+            }
+            case 6: {
+                R0.setDirection(DcMotor.Direction.REVERSE);
+                R2.setDirection(DcMotor.Direction.REVERSE);
+                L1.setDirection(DcMotor.Direction.REVERSE);
+                L3.setDirection(DcMotor.Direction.REVERSE);
                 break;
             }
         }
@@ -188,6 +189,7 @@ public class blueBottomParkRight extends LinearOpMode {
         L1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         R2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         R0.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
         //mesure the encoder
         L3.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         L1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -203,52 +205,41 @@ public class blueBottomParkRight extends LinearOpMode {
         L3.setPower(power);
         L1.setPower(power);
         R2.setPower(power);
-        if (dir==1) {
-            if (power>0.3) {
-                R0.setPower(power-0.3);
-            } else {
-                R0.setPower(power);
-            }
-        }
-        else {
-            R0.setPower(power);
-        }
+        R0.setPower(power);
+
         //calc the error - by ticks
-        target_position = (L3.getCurrentPosition() + target) - error;
+        target_position_L3 = (L3.getCurrentPosition() + target) - error;
+        target_position_L1 = (L3.getCurrentPosition() + target) - error;
+        target_position_R0 = (L3.getCurrentPosition() + target) - error;
+        target_position_R2 = (L3.getCurrentPosition() + target) - error;
+
         // be safe with abs value
         //  error2 = Math.abs(target_position - 1328);
         // target_position = Math.abs(target_position - error2);
 
 
-
         //run to position
-        while (opModeIsActive()&&(L3.getCurrentPosition() < target_position) ) {
+        while (opModeIsActive() && (L3.getCurrentPosition() < target_position_L3) ) {
 
 
             //acceleration
+
+            /*
             power = power + acceleration;
-            if (power >= 1) {
-                //dont over 1!
-                // if the power is 1 --> keep it 1
-                power = 1;
+            if (power >= 0.9) {
+//                dont over 1!
+//                 if the power is 1 --> keep it 1
+                power = 0.9;
             }
+            */
 
             //keep update the power
             R2.setPower(power);
             L3.setPower(power);
             L1.setPower(power);
-            if (dir==1) {
-                if (power>0.3) {
-                    R0.setPower(power-0.3);
-                } else {
-                    R0.setPower(power);
-                }
-            }
-            else {
-                R0.setPower(power);
-            }
+            R0.setPower(power);
 
-            telemetry.addData("R2 ticks = " , R2.getCurrentPosition());
+            telemetry.addData("R2 ticks = ", R2.getCurrentPosition());
             telemetry.update();
         }
 
@@ -268,6 +259,7 @@ public class blueBottomParkRight extends LinearOpMode {
         amountToTurn = amountToTurn / 4;
         return amountToTurn;
     }
+
     private void eatCube() {
 
 
@@ -300,18 +292,18 @@ public class blueBottomParkRight extends LinearOpMode {
     }
 
 
-    public void stopCubeEaters(){
+    public void stopCubeEaters() {
         CE1.setPower(0);
         CE2.setPower(0);
     }
 
-    public void catch_cube(boolean lower) {
+    public void catch_release_cube(boolean lower) {
 
         telemetry.addData("CM position", CM.getPosition());
         telemetry.update();
         if (lower) {
             CM.setDirection(Servo.Direction.REVERSE);
-            CM.setPosition(0.55);
+            CM.setPosition(0.60);
             telemetry.addData("CM position after low", CM.getPosition());
             telemetry.update();
         } else {
@@ -320,10 +312,92 @@ public class blueBottomParkRight extends LinearOpMode {
             telemetry.addData("CM position after up", CM.getPosition());
             telemetry.update();
         }
-
         sleep(100);
 
 //        CM.setDirection(Servo.Direction.FORWARD);
+    }
+
+
+    public void move_cube_to_building_zone(int distance) {
+//        drive(3, 25);
+//        int dist = distanceToTurn(110); //110 degrees = 90
+//        drive(6, dist);
+        turn_by_gyro(0,82);
+        telemetry.addData("moving to building zone","...");
+        telemetry.update();
+        sleep(500);
+        drive(4, distance);
+        catch_release_cube(false);
+    }
+
+    public void turn_by_gyro(int dir, double degrees) {
+        //0 == left
+        //1 == right
+
+        reset_gyro();
+
+        double error = 11;
+        if (dir == 1) {
+            R0.setDirection(DcMotor.Direction.FORWARD);
+            R2.setDirection(DcMotor.Direction.FORWARD);
+            L1.setDirection(DcMotor.Direction.FORWARD);
+            L3.setDirection(DcMotor.Direction.FORWARD);
+
+
+        } else {
+            //left
+            R0.setDirection(DcMotor.Direction.REVERSE);
+            R2.setDirection(DcMotor.Direction.REVERSE);
+            L1.setDirection(DcMotor.Direction.REVERSE);
+            L3.setDirection(DcMotor.Direction.REVERSE);
+        }
+
+
+        power =(float) 0.95; //do not change!!!!
+        L3.setPower(power);
+        L1.setPower(power);
+        R2.setPower(power);
+        R0.setPower(power);
+        angle = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        telemetry.addData("the first angle = ", angle.firstAngle);
+        telemetry.update();
+        double original_angle=angle.firstAngle;
+        //calc the error
+        if(dir==0) {
+            degrees = original_angle+degrees - error;
+            while (angle.firstAngle < degrees) {
+
+                angle = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+                telemetry.addData("the first angle = ", angle.firstAngle);
+                telemetry.addData("angle = ", angle.firstAngle);
+                telemetry.addData("degrees = ",degrees);
+                telemetry.update();
+
+            }
+            power = 0;
+            L3.setPower(power);
+            L1.setPower(power);
+            R2.setPower(power);
+            R0.setPower(power);
+        }else{
+            degrees = original_angle-(degrees - error);
+            while (angle.firstAngle > degrees) {
+
+                angle = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+                telemetry.addData("the first angle = ", angle.firstAngle);
+                telemetry.addLine();
+                telemetry.addData("angle = ", angle.firstAngle);
+                telemetry.addLine();
+                telemetry.addData("degrees = ",degrees);
+                telemetry.update();
+
+            }
+            power = 0;
+            L3.setPower(power);
+            L1.setPower(power);
+            R2.setPower(power);
+            R0.setPower(power);
+        }
     }
 
     //main
@@ -333,73 +407,141 @@ public class blueBottomParkRight extends LinearOpMode {
         //init mode
         setup();
         waitForStart();
-        //go forward
-        drive(1,13);
-        //go left
-        drive(4, 95);
-        //go forward to cube
-        drive(1, 7);
-        eatCube();
-        //go forward while eating cube
-        drive(1,6);
-        sleep(100);
-        stopCubeEaters();
-        //go right
-        drive(3,40);
-        //turn 180 degrees.
-        int dist=distanceToTurn(180);
-        drive(5,dist);
-        //drive forward
-        drive(1, 113);
-        pukeCube();
-        //drive forward while releasing
-        drive(1,10);
-        //drive backward
-        drive(2,6);
-        sleep(100);
-        stopCubeEaters();
-        //end first stone
-
-        //drive back
-        drive(2, 96);
-        //turn 180 degrees
-        dist=distanceToTurn(180);
-        drive(6,dist);
-        //drive forward
+        //drive to the cube
         drive(1,30);
-        //drive left
-        drive(4, 34);
-        //drive forward
-        drive(1, 32);
-        eatCube();
-        //drive forward while eating cube
-        drive(1,4);
-        sleep(100);
-        stopCubeEaters();
-        //drive right
-        drive(3,40);
-        //turn 180 degrees
-        distanceToTurn(180);
-        drive(5,dist);
-        //drive forward
-        drive(1, 140);
-        pukeCube();
-        //drive forward while releasing cube
-        drive(1,10);
-        sleep(100);
-        //drive backward
-        drive(2,5);
-        sleep(100);
-        stopCubeEaters();
-        drive(3, 22);
-        drive(2, 30);
-        //end this should pick a cube from the left side of the Arena. :)
+        drive(4, 60);
+//        sensorColor.enableLed(true);
+        telemetry.addData("sensor dist ",sensorDistance.getDistance(DistanceUnit.CM));
+        telemetry.update();
+        telemetry.addData("green1",sensorColor.green());
+        telemetry.addData("red1",sensorColor.red());
+        telemetry.update();
+        sleep(1000);
+        if (sensorColor.green() <= 300 && sensorColor.red() <= 200) {
+            telemetry.addData("found ",sensorDistance.getDistance(DistanceUnit.CM));
+            telemetry.update();
+//            while (sensorDistance.getDistance(DistanceUnit.CM)>2) {
+//                drive(4,1);
+//                sleep(200);
+//            }
+            drive(4,1);
+            sleep(200);
+            drive(4,1);
+            sleep(200);
+            drive(4,1);
+            sleep(200);
+            drive(4,1);
+            sleep(200);
 
+            //sky stone
+            sleep(250);
+            catch_release_cube(true);
+            sleep(250);
 
+            sensorColor.enableLed(false);
+            drive(3, 30);
+            move_cube_to_building_zone(120);
+            drive(3, 170);
+            turn_by_gyro(1, 90);
+
+            drive(4, 30);
+            while (sensorDistance.getDistance(DistanceUnit.CM)>3) {
+                drive(4,1);
+                sleep(200);
+            }
+            drive(4,1);
+
+            sleep(250);
+            catch_release_cube(true);
+            sleep(250);
+
+            drive(3, 30);
+            turn_by_gyro(0,15);
+
+            move_cube_to_building_zone(180);
+            drive(3, 55);
+            drive(1,25);
+        } else {
+            drive(1, 20);
+            sensorColor.enableLed(true);
+            telemetry.addData("sensor dist ",sensorDistance.getDistance(DistanceUnit.CM));
+            telemetry.update();
+//            sleep(1000);
+//            while (sensorDistance.getDistance(DistanceUnit.CM)>5) {
+//                drive(4,1);
+//                sleep(1000);
+//            }
+            telemetry.addData("green2",sensorColor.green());
+            telemetry.addData("red2",sensorColor.red());
+            telemetry.update();
+            sleep(1000);
+            if (sensorColor.green() <= 300 && sensorColor.red() <= 200) {
+                telemetry.addData("found #2 ",sensorDistance.getDistance(DistanceUnit.CM));
+                telemetry.update();
+//                while (sensorDistance.getDistance(DistanceUnit.CM)>2) {
+//                    drive(4,1);
+//                    sleep(200);
+//                }
+                drive(4,1);
+                sleep(200);
+                drive(4,1);
+                sleep(200);
+                drive(4,1);
+                sleep(200);
+
+                sleep(250);
+                catch_release_cube(true);
+                sleep(250);
+                sensorColor.enableLed(false);
+                drive(3, 20);
+                move_cube_to_building_zone(130);
+                drive(3, 160);
+                //turn first so that we dont hit the wall
+                turn_by_gyro(0, 95);
+                drive(1, 8);
+
+                drive(4, 26);
+                while (sensorDistance.getDistance(DistanceUnit.CM)>3) {
+                    drive(4,1);
+                    sleep(200);
+                }
+                drive(4,1);
+                sleep(250);
+                catch_release_cube(true);
+                sleep(250);
+                drive(3, 20);
+                turn_by_gyro(0,15);
+
+                move_cube_to_building_zone(180);
+                drive(3, 55);
+                drive(1,10);
+            } else {
+                drive(1, 18);
+//                sensorColor.enableLed(true);
+//                if (sensorColor.green() <= 2000 && sensorColor.red() <= 2000) {
+                while (sensorDistance.getDistance(DistanceUnit.CM)>2) {
+                    drive(4,1);
+                    sleep(200);
+                }
+                sleep(250);
+                catch_release_cube(true);
+                sleep(250);
+//                    sensorColor.enableLed(false);
+                drive(3, 15);
+                move_cube_to_building_zone(160);
+                drive(3, 55);
+                drive(1,15);
+
+//                drive(3, 40);
+//                catch_release_cube(true);
+//                move_cube_to_building_zone(210);
+//                drive(3, 50);
+            }
+        }
 
         while (opModeIsActive()) {
+
         }
 
     }
-
 }

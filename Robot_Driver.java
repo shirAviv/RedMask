@@ -16,7 +16,7 @@ public class Robot_Driver extends LinearOpMode {
     DcMotor R0, R2, L1, L3, CE1, CE2, SCM;
     Servo FNM, SHELFMOTOR, CATCHMOTOR, CM;
     float dir = 1;
-    float curr_power = (float) 0.65;
+    float curr_power = (float) 0.95;
     private double shelf_counter = 0;
     private double shelf_increment = 0.0055;
 
@@ -75,7 +75,7 @@ public class Robot_Driver extends LinearOpMode {
         sleep(10);//used to be 3000
 
 
-        FNM.setDirection(Servo.Direction.FORWARD);
+//        FNM.setDirection(Servo.Direction.FORWARD);
     }
 
     public void catchReleaseMotor(boolean pushin) {
@@ -98,11 +98,9 @@ public class Robot_Driver extends LinearOpMode {
 
         telemetry.addData("CRM position", CATCHMOTOR.getPosition());
         if (lower) {
-            CM.setDirection(Servo.Direction.REVERSE);
             CM.setPosition(0.55);
         } else {
-            CM.setDirection(Servo.Direction.FORWARD);
-            CM.setPosition(0.55);
+            CM.setPosition(0.05);
         }
 
 
@@ -227,7 +225,7 @@ public class Robot_Driver extends LinearOpMode {
                 setMotionEnginesMotorPower(curr_power);
             } else if (gamepad1.right_bumper) {
                 //normal mode
-                curr_power = (float) 0.65;
+                curr_power = (float) 0.9;
 
             } else if (gamepad1.left_bumper) {
                 //slow mode
@@ -250,7 +248,7 @@ public class Robot_Driver extends LinearOpMode {
                 telemetry.update();
                 foundationCatchRelease(true);
 
-            } else if (gamepad1.y) {
+            } else if ( gamepad1.y) {
                 telemetry.addData("working on FNM 2", FNM.getPosition());
                 telemetry.update();
                 foundationCatchRelease(false);
